@@ -67,8 +67,10 @@ void ProxyPass::processClientPacket(ProxyBridge& bridge, const protocol::IPacket
         return handleClient(bridge, static_cast<const protocol::LoginPacket&>(packet));
     }
     case protocol::MinecraftPacketIds::ClientToServerHandshake: {
+        std::println("Client => Proxy | {}", packet);
         auto pkt = protocol::RequestNetworkSettingsPacket{protocol::getProtocolVersion()};
         bridge.sendPacketToServer(pkt, true);
+        std::println("Proxy => Server | {}", pkt);
         break;
     }
     default: {
@@ -80,6 +82,7 @@ void ProxyPass::processClientPacket(ProxyBridge& bridge, const protocol::IPacket
 }
 
 void ProxyPass::handleClient(protocol::Session& session, const protocol::RequestNetworkSettingsPacket& packet) {
+    std::println("Client => Proxy | {}", packet);
     if (packet.mClientNetworkVersion != protocol::getProtocolVersion()) {
         // TODO: handle protocol version mismatch, maybe disconnect with a message?
         return;
@@ -88,6 +91,7 @@ void ProxyPass::handleClient(protocol::Session& session, const protocol::Request
     protocol::Session::Buffer       buffer{};
     protocol::BinaryStream          stream{buffer};
     settingsPacket.writeWithHeader(stream);
+    std::println("Proxy => Client | {}", settingsPacket);
     session.sendPacketImmediately(std::move(buffer));
     session.setCompression(
         static_cast<protocol::Session::CompressionType>(settingsPacket.mCompressionAlgorithm),
@@ -96,6 +100,7 @@ void ProxyPass::handleClient(protocol::Session& session, const protocol::Request
 }
 
 void ProxyPass::handleClient(ProxyBridge& bridge, const protocol::LoginPacket& packet) {
+    std::println("Client => Proxy | {}", packet);
     auto request = protocol::ConnectionRequest::fromString(packet.mRawConnectionRequest);
     if (!request) {
         // TODO: handle invalid connection request, maybe disconnect with a message?
@@ -117,6 +122,7 @@ void ProxyPass::handleClient(ProxyBridge& bridge, const protocol::LoginPacket& p
     handshakePacket.mHandshakeWebToken = token->toString();
 
     bridge.sendPacketToClient(handshakePacket, true);
+    std::println("Proxy => Client | {}", handshakePacket);
 
     auto sessionToken = protocol::CryptoManager::computeSessionKey(
         mProxyServerKeyPair.mPrivateKeyPem,
@@ -188,7 +194,7 @@ void ProxyPass::processServerPacket(ProxyBridge& bridge, const protocol::IPacket
         break;
     }
     case protocol::MinecraftPacketIds::ServerToClientHandshake: {
-        handleClient(bridge, static_cast<const protocol::ServerToClientHandshakePacket&>(packet));
+        handleServer(bridge, static_cast<const protocol::ServerToClientHandshakePacket&>(packet));
         break;
     }
     default: {
@@ -200,6 +206,7 @@ void ProxyPass::processServerPacket(ProxyBridge& bridge, const protocol::IPacket
 }
 
 void ProxyPass::handleServer(ProxyBridge& bridge, const protocol::NetworkSettingsPacket& packet) {
+    std::println("Server => Proxy | {}", packet);
     bridge.mProxyClient.getSession().setCompression(
         static_cast<protocol::Session::CompressionType>(packet.mCompressionAlgorithm),
         packet.mCompressionThreshold
@@ -210,9 +217,11 @@ void ProxyPass::handleServer(ProxyBridge& bridge, const protocol::NetworkSetting
     bridge.mConnectionRequest.selfSign(mProxyServerKeyPair);
     loginPacket.mRawConnectionRequest = bridge.mConnectionRequest.toString();
     bridge.sendPacketToServer(loginPacket, true);
+    std::println("Proxy => Server | {}", loginPacket);
 }
 
-void ProxyPass::handleClient(ProxyBridge& bridge, const protocol::ServerToClientHandshakePacket& packet) {
+void ProxyPass::handleServer(ProxyBridge& bridge, const protocol::ServerToClientHandshakePacket& packet) {
+    std::println("Server => Proxy | {}", packet);
     auto handshakeToken = protocol::HandShakeToken::fromString(packet.mHandshakeWebToken);
     if (!handshakeToken || !handshakeToken->verify()) {
         // TODO: handle invalid handshake token, maybe disconnect with a message?
@@ -231,6 +240,7 @@ void ProxyPass::handleClient(ProxyBridge& bridge, const protocol::ServerToClient
     bridge.mProxyClient.getSession().setEncrypted(std::move(*sessionKey));
     protocol::ClientToServerHandshakePacket handshakePacket{};
     bridge.sendPacketToServer(handshakePacket, true);
+    std::println("Proxy => Server | {}", handshakePacket);
 }
 
 } // namespace sculk

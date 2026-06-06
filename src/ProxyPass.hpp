@@ -51,7 +51,7 @@ private:
     void handleClient(ProxyBridge&, const protocol::LoginPacket&);
     void processServerPacket(ProxyBridge&, const protocol::IPacket&);
     void handleServer(ProxyBridge&, const protocol::NetworkSettingsPacket&);
-    void handleClient(ProxyBridge&, const protocol::ServerToClientHandshakePacket&);
+    void handleServer(ProxyBridge&, const protocol::ServerToClientHandshakePacket&);
 };
 
 } // namespace sculk
