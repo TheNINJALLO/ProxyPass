@@ -136,7 +136,7 @@ void ProxyPass::handleClient(protocol::Session& session, const protocol::Request
         std::println("[ProxyPass] Proxy => Client | {}", settingsPacket);
     }
     session.sendPacketImmediately(std::move(buffer));
-    session.setCompression(
+    session.setCompressed(
         static_cast<protocol::Session::CompressionType>(settingsPacket.mCompressionAlgorithm),
         settingsPacket.mCompressionThreshold
     );
@@ -317,7 +317,7 @@ void ProxyPass::handleServer(ProxyBridge& bridge, const protocol::NetworkSetting
         && !mSettings.packets_logger.packet_ids.contains(protocol::MinecraftPacketIds::NetworkSettings)) {
         std::println("[ProxyPass] Server => Proxy | {}", packet);
     }
-    bridge.mProxyClient.getSession().setCompression(
+    bridge.mProxyClient.getSession().setCompressed(
         static_cast<protocol::Session::CompressionType>(packet.mCompressionAlgorithm),
         packet.mCompressionThreshold
     );
