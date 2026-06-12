@@ -1,5 +1,22 @@
+// Copyright © 2026 SculkCatalystMC. All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 #include "ProxyBridge.hpp"
 #include "ProxySettings.hpp"
+#include <parallel_hashmap/phmap.h>
 #include <sculk/protocol/auth/AuthenticationKeyManager.hpp>
 #include <sculk/protocol/codec/actor/player/DisconnectFailReason.hpp>
 #include <sculk/protocol/codec/actor/player/PlayStatus.hpp>
@@ -14,22 +31,14 @@
 namespace sculk {
 
 class ProxyPass {
-    protocol::thread::ThreadPool&                                   mSharedPool;
-    protocol::io::ClientIoRuntime&                                  mSharedIoRuntime;
-    protocol::ServerNetworkSystem                                   mProxyServer{};
-    std::unordered_map<std::uint64_t, std::unique_ptr<ProxyBridge>> mBridges{};
-    const protocol::AuthenticationKeyManager&                       mAuthManager;
-    protocol::PemKeyPair                                            mProxyServerKeyPair{};
-    std::mutex                                                      mMutex{};
-    ProxySettings&                                                  mSettings;
+    protocol::ServerNetworkSystem                                                mProxyServer{};
+    phmap::parallel_flat_hash_map_m<std::uint64_t, std::shared_ptr<ProxyBridge>> mBridges{};
+    const protocol::AuthenticationKeyManager&                                    mAuthManager;
+    protocol::PemKeyPair                                                         mProxyServerKeyPair{};
+    ProxySettings&                                                               mSettings;
 
 public:
-    ProxyPass(
-        protocol::thread::ThreadPool&             sharedPool,
-        protocol::io::ClientIoRuntime&            sharedIoRuntime,
-        protocol::AuthenticationKeyManager const& authManager,
-        ProxySettings&                            settings
-    );
+    ProxyPass(protocol::AuthenticationKeyManager const& authManager, ProxySettings& settings);
 
     bool start();
 

@@ -1,38 +1,79 @@
+// Copyright © 2026 SculkCatalystMC. All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 #pragma once
 #include <cstdint>
 #include <sculk/protocol/codec/MinecraftPacketIds.hpp>
+#include <sculk/reflection/annotated.hpp>
 #include <set>
 #include <string>
 
 namespace sculk {
 
+#define COMMENT(...)                  __VA_ARGS__
+#define CONFIG(TYPE, FIELD, COMMENTS) reflection::annotated<TYPE, COMMENTS> FIELD
+#define CONFIG_STRUCT(FIELD, COMMENTS, ...)                                                                            \
+    struct AnonymousType_##FIELD {                                                                                     \
+        __VA_ARGS__                                                                                                    \
+    };                                                                                                                 \
+    reflection::annotated<AnonymousType_##FIELD, COMMENTS> FIELD;
+
 struct ProxySettings {
-    std::string   motd          = "A Minecraft Proxy Server";
-    std::uint16_t ipv4_port     = 19132;
-    std::uint16_t ipv6_port     = 19133;
-    bool          online_mode   = true;
-    std::string   upstream_host = "127.0.0.1";
-    std::uint16_t upstream_port = 19134;
-    std::uint32_t max_players   = 100;
-    struct {
-        bool                                   black_list_mode = true;
-        std::set<protocol::MinecraftPacketIds> packet_ids      = {
-            protocol::MinecraftPacketIds::Login,
-            protocol::MinecraftPacketIds::RequestNetworkSettings,
-            protocol::MinecraftPacketIds::NetworkSettings,
-            protocol::MinecraftPacketIds::ClientToServerHandshake,
-            protocol::MinecraftPacketIds::ServerToClientHandshake,
-            protocol::MinecraftPacketIds::NetworkChunkPublisherUpdate,
-            protocol::MinecraftPacketIds::SubChunk,
-            protocol::MinecraftPacketIds::SubChunkRequest,
-            protocol::MinecraftPacketIds::LevelChunk,
-            protocol::MinecraftPacketIds::MoveActorDelta,
-            protocol::MinecraftPacketIds::PlayerAuthInput,
-            protocol::MinecraftPacketIds::SetActorMotion,
-            protocol::MinecraftPacketIds::StartGame,
-            protocol::MinecraftPacketIds::CraftingData,
-        };
-    } packets_logger;
+    CONFIG(
+        std::string,
+        motd = "A Minecraft Proxy Server",
+        COMMENT("Proxy server MOTD displayed.", "展示的代理服务器 MOTD")
+    );
+    CONFIG(std::uint16_t, proxy_port = 19132, COMMENT("Proxy server IPv4 port", "代理服务器 IPv4 端口"));
+    CONFIG(std::uint16_t, proxy_port_v6 = 19133, COMMENT("Proxy server IPv6 port", "代理服务器 IPv6 端口"));
+    CONFIG(
+        bool,
+        online_mode = true,
+        COMMENT("Whether to enable Xbox Live online authentication", "是否启用 Xbox Live 在线认证")
+    );
+    CONFIG(
+        std::string,
+        upstream_host = "127.0.0.1",
+        COMMENT(
+            "Upstream server host, usually an IP or domain name, supports IPv4 and IPv6",
+            "上游服务器主机地址，通常为 IP 或域名，支持 IPv4 和 IPv6"
+        )
+    );
+    CONFIG(std::uint16_t, upstream_port = 19134, COMMENT("Upstream server port", "上游服务器端口"));
+    CONFIG(std::uint32_t, max_players = 100, COMMENT("Maximum number of players", "最大玩家数量"));
+    CONFIG_STRUCT(
+        packets_logger,
+        COMMENT("Settings for packets logger", "数据包记录设置"),
+        CONFIG(
+            bool,
+            black_list_mode = false,
+            COMMENT("Whether to use black list mode for packets logger", "数据包记录是否启用黑名单模式")
+        );
+        CONFIG(
+            std::set<protocol::MinecraftPacketIds>,
+            packet_ids = {},
+            COMMENT(
+                "Packet IDs for the packets logger, can use numeric IDs or protocol packet names (case-insensitive)",
+                "Under black list mode, it means not logging these packets; under white list mode, it means only "
+                "logging these packets",
+                "数据包 ID 列表，可使用数字ID，也可以使用协议包名（不区分大小写）",
+                "在黑名单模式下表示不记录这些数据包，在白名单模式下表示只记录这些数据包"
+            )
+        );
+    );
 
     bool load();
     void save() const;

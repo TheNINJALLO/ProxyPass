@@ -1,3 +1,19 @@
+// Copyright © 2026 SculkCatalystMC. All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, version 3 of the License.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 #include "ProxyPass.hpp"
 #include <iostream>
 
@@ -26,8 +42,6 @@ int main() {
     std::condition_variable waitCv{};
     bool                    stopped{false};
 
-    sculk::protocol::thread::ThreadPool       sharedPool{4};
-    sculk::protocol::io::ClientIoRuntime      sharedIoRuntime{4};
     sculk::protocol::AuthenticationKeyManager authKeyManager{};
     sculk::ProxySettings                      settings{};
 
@@ -39,7 +53,7 @@ int main() {
         return 1;
     }
 
-    auto proxyPass = sculk::ProxyPass(sharedPool, sharedIoRuntime, authKeyManager, settings);
+    auto proxyPass = sculk::ProxyPass(authKeyManager, settings);
     if (!proxyPass.start()) {
         std::println(stderr, "[ProxyPass] Failed to start proxy server.");
         return 1;
